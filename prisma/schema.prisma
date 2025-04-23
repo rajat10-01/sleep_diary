@@ -1,0 +1,119 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// SQLite does not support enums directly. Use strings and validate in application code.
+// enum Role {
+//   PATIENT
+//   DOCTOR
+// }
+
+model User {
+  id            String          @id @default(cuid())
+  name          String?
+  email         String          @unique
+  emailVerified DateTime?
+  image         String?
+  // role          Role            @default(PATIENT) // Changed for SQLite compatibility
+  role          String          // Expected values: "PATIENT", "DOCTOR"
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  doctorProfile DoctorProfile?
+  patientProfile PatientProfile?
+}
+
+model DoctorProfile {
+  id           String           @id @default(cuid())
+  userId       String           @unique
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialty    String?
+  clinicName   String?
+  patients     PatientProfile[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+}
+
+model PatientProfile {
+  id           String       @id @default(cuid())
+  userId       String       @unique
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  doctorId     String?
+  doctor       DoctorProfile? @relation(fields: [doctorId], references: [id], onDelete: SetNull) // SetNull: Keep patient if doctor is deleted
+  sleepEntries SleepEntry[]
+  dateOfBirth  DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model SleepEntry {
+  id                           String         @id @default(cuid())
+  patientId                    String
+  patient                      PatientProfile @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  // date                         DateTime       @db.Date // Removed for SQLite compatibility
+  date                         DateTime       // The date the entry is FOR
+  bedtime                      DateTime       // Time went to bed
+  wakeUpTime                   DateTime       // Time got out of bed
+  timeToFallAsleepMinutes      Int            // Estimated minutes to fall asleep
+  timesWokenUp                 Int            // Number of times woken up during the night
+  timeAwakeDuringNightMinutes  Int            // Estimated total time awake during the night (minutes)
+  sleepQualityRating           Int            // Subjective rating (e.g., 1-5, 1=Very Poor, 5=Very Good)
+  restedRating                 Int            // How rested felt upon waking (e.g., 1-5, 1=Very Tired, 5=Very Rested)
+  notes                        String?
+  createdAt                    DateTime       @default(now()) // When the entry was created
+  updatedAt                    DateTime       @updatedAt
+}
+
+
+// --- NextAuth.js Models ---
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  // refresh_token     String? @db.Text // Removed for SQLite compatibility
+  refresh_token     String?
+  // access_token      String? @db.Text // Removed for SQLite compatibility
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  // id_token          String? @db.Text // Removed for SQLite compatibility
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
