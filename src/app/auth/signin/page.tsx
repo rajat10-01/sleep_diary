@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, Suspense } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -17,7 +17,7 @@ interface FormData {
   password: string;
 }
 
-export default function SignIn() {
+function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/api/auth/callback';
@@ -248,28 +248,50 @@ export default function SignIn() {
           </p>
         </div>
 
-        {/* Demo accounts box */}
-        <div className="mt-6 p-4 bg-indigo-50 rounded-md">
-          <h3 className="text-sm font-medium text-indigo-800 mb-2">Demo Accounts (for quick testing)</h3>
-          <div className="space-y-2">
+        {/* Demo account section */}
+        <div className="mt-8 pt-6 border-t border-gray-200">
+          <h3 className="text-sm font-medium text-gray-700 mb-4">Demo Accounts</h3>
+          <div className="grid grid-cols-2 gap-4">
             <button
               onClick={loginAsDoctor}
-              className="w-full bg-white text-indigo-700 border border-indigo-300 py-2 px-4 rounded-md hover:bg-indigo-50 text-sm transition-colors"
+              className="bg-green-50 hover:bg-green-100 text-green-700 py-2 px-4 rounded-md text-sm transition-colors"
             >
-              Login as Doctor
+              Sign in as Doctor
             </button>
             <button
               onClick={loginAsPatient}
-              className="w-full bg-white text-purple-700 border border-purple-300 py-2 px-4 rounded-md hover:bg-purple-50 text-sm transition-colors"
+              className="bg-blue-50 hover:bg-blue-100 text-blue-700 py-2 px-4 rounded-md text-sm transition-colors"
             >
-              Login as Patient
+              Sign in as Patient
             </button>
           </div>
-          <p className="text-xs text-gray-500 mt-2">
-            Both accounts use password: "password"
-          </p>
         </div>
       </motion.div>
     </div>
+  );
+}
+
+// Add a loading fallback for the Suspense boundary
+function SignInLoading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-purple-100 px-4">
+      <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full flex justify-center items-center">
+        <div className="animate-pulse text-center">
+          <div className="mx-auto w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
+            <MoonIcon className="w-8 h-8 text-indigo-300" />
+          </div>
+          <div className="h-6 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function SignIn() {
+  return (
+    <Suspense fallback={<SignInLoading />}>
+      <SignInContent />
+    </Suspense>
   );
 } 

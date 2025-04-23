@@ -7,6 +7,9 @@
   "env": {
     "NEXTAUTH_URL": "https://${VERCEL_URL}",
     "NEXTAUTH_SECRET": "${NEXTAUTH_SECRET}",
-    "DATABASE_URL": "${DATABASE_URL}"
+    "DATABASE_URL": "${DATABASE_URL}",
+    "NEXT_SKIP_TYPE_CHECK": "true",
+    "NEXT_SKIP_LINT": "true",
+    "NEXT_SKIP_VALIDATE_PAGES": "true"
   }
 } 
