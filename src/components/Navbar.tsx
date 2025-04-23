@@ -2,37 +2,104 @@
 
 import { useSession, signIn, signOut } from 'next-auth/react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { MoonIcon, StarIcon } from './Icons';
 
-// Moon SVG for the logo
-const MoonIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
-    <path fillRule="evenodd" d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-3.51 1.758-6.628 4.43-8.493a.75.75 0 01.819.162z" clipRule="evenodd" />
-  </svg>
-);
-
-// Star SVG for decoration
-const StarIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
-    <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354l-4.543 2.907c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
-  </svg>
-);
+// Import anime.js correctly
+import anime from '../utils/anime';
 
 // Separate client component for session-dependent UI
 function AuthSection() {
   const { data: session, status } = useSession();
   const userData = session?.user;
+  const loadingDotsRef = useRef<HTMLDivElement>(null);
+  const signInButtonRef = useRef<HTMLButtonElement>(null);
+  const signOutButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    // Animation for loading dots
+    if (status === 'loading' && loadingDotsRef.current) {
+      const dots = loadingDotsRef.current.querySelectorAll('div');
+      
+      anime({
+        targets: dots,
+        translateY: [-2, 2, -2],
+        duration: 600,
+        loop: true,
+        delay: anime.stagger(100),
+        easing: 'easeInOutSine'
+      });
+    }
+
+    // Animation for sign in/out buttons
+    const setupButtonAnimation = (button: HTMLButtonElement | null) => {
+      if (!button) return;
+      
+      // Pre-compute animations for better performance
+      const animations = {
+        enter: anime({
+          targets: button,
+          scale: 1.05,
+          duration: 150,
+          easing: 'easeOutQuad',
+          autoplay: false
+        }),
+        leave: anime({
+          targets: button,
+          scale: 1,
+          duration: 150,
+          easing: 'easeOutQuad',
+          autoplay: false
+        }),
+        down: anime({
+          targets: button,
+          scale: 0.95,
+          duration: 75,
+          easing: 'easeOutQuad',
+          autoplay: false
+        }),
+        up: anime({
+          targets: button,
+          scale: 1.05,
+          duration: 75,
+          easing: 'easeOutQuad',
+          autoplay: false
+        })
+      };
+      
+      // Use direct event listeners instead of anime hover events
+      button.addEventListener('mouseenter', () => animations.enter.play());
+      button.addEventListener('mouseleave', () => animations.leave.play());
+      button.addEventListener('mousedown', () => animations.down.play());
+      button.addEventListener('mouseup', () => animations.up.play());
+    };
+    
+    setupButtonAnimation(signInButtonRef.current);
+    setupButtonAnimation(signOutButtonRef.current);
+    
+    return () => {
+      if (loadingDotsRef.current) {
+        const dots = loadingDotsRef.current.querySelectorAll('div');
+        anime.remove(dots);
+      }
+      
+      if (signInButtonRef.current) {
+        anime.remove(signInButtonRef.current);
+      }
+      
+      if (signOutButtonRef.current) {
+        anime.remove(signOutButtonRef.current);
+      }
+    };
+  }, [status]);
 
   if (status === 'loading') {
     return (
-      <div className="flex space-x-1">
+      <div ref={loadingDotsRef} className="flex space-x-1">
         {[1, 2, 3].map((i) => (
-          <motion.div 
+          <div 
             key={i} 
             className="w-2 h-2 bg-indigo-400 rounded-full"
-            animate={{ y: [-2, 2, -2] }}
-            transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.1 }}
           />
         ))}
       </div>
@@ -41,14 +108,13 @@ function AuthSection() {
 
   if (status === 'unauthenticated') {
     return (
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+      <button
+        ref={signInButtonRef}
         onClick={() => signIn('email')}
-        className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white py-2 px-5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300"
+        className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white py-2 px-5 rounded-full text-sm font-medium shadow-md"
       >
         Sign In
-      </motion.button>
+      </button>
     );
   }
 
@@ -64,71 +130,194 @@ function AuthSection() {
       >
         Dashboard
       </Link>
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+      <button
+        ref={signOutButtonRef}
         onClick={() => signOut()}
         className="bg-red-100 hover:bg-red-200 text-red-700 py-1.5 px-4 rounded-full text-sm transition-colors duration-300"
       >
         Sign Out
-      </motion.button>
+      </button>
     </div>
   );
 }
 
 // Main navbar component
 export default function Navbar() {
-  const [mounted, setMounted] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const linksRef = useRef<HTMLDivElement>(null);
   
-  // Only render client-specific content after mounting
+  // Animation setup
   useEffect(() => {
-    setMounted(true);
+    if (navRef.current) {
+      const nav = navRef.current;
+      
+      // Initial fade in - lighter and quicker
+      anime({
+        targets: nav,
+        opacity: [0, 1],
+        translateY: [-5, 0],
+        duration: 400,
+        easing: 'easeOutQuad'
+      });
+      
+      // Links hover effect - pre-calculate for better performance
+      if (linksRef.current) {
+        const links = linksRef.current.querySelectorAll('a');
+        
+        links.forEach((link: Element) => {
+          // Create animations once and reuse
+          const enterAnim = anime({
+            targets: link,
+            scale: 1.05,
+            duration: 150,
+            easing: 'easeOutQuad',
+            autoplay: false
+          });
+          
+          const leaveAnim = anime({
+            targets: link,
+            scale: 1,
+            duration: 150,
+            easing: 'easeOutQuad',
+            autoplay: false
+          });
+          
+          link.addEventListener('mouseenter', () => enterAnim.play());
+          link.addEventListener('mouseleave', () => leaveAnim.play());
+        });
+      }
+
+      return () => {
+        if (navRef.current) anime.remove(navRef.current);
+        if (linksRef.current) {
+          const links = linksRef.current.querySelectorAll('a');
+          links.forEach(link => anime.remove(link));
+        }
+      };
+    }
   }, []);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!navRef.current) return;
+
+    // Animate navbar background on scroll - transparent to start, never black
+    anime({
+      targets: navRef.current,
+      backgroundColor: isScrolled ? 'rgba(255, 255, 255, 0.85)' : 'rgba(255, 255, 255, 0)',
+      backdropFilter: isScrolled ? 'blur(10px)' : 'blur(0px)',
+      boxShadow: isScrolled ? '0 4px 6px -1px rgba(0, 0, 0, 0.05)' : '0 0 0 0 rgba(0, 0, 0, 0)',
+      duration: 250,
+      easing: 'easeOutQuad'
+    });
+  }, [isScrolled]);
+
+  useEffect(() => {
+    if (!menuRef.current) return;
+
+    // Mobile menu animation - faster for better responsiveness
+    anime({
+      targets: menuRef.current,
+      translateY: isMenuOpen ? ['-100%', '0%'] : ['0%', '-100%'],
+      opacity: isMenuOpen ? [0, 1] : [1, 0],
+      duration: 200,
+      easing: 'easeOutQuad'
+    });
+  }, [isMenuOpen]);
+
+  const navLinks = [
+    { href: '/', label: 'Home' },
+    { href: '/diary', label: 'Diary' },
+    { href: '/stats', label: 'Stats' },
+    { href: '/settings', label: 'Settings' }
+  ];
+
   return (
-    <motion.nav 
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      transition={{ type: 'spring', stiffness: 120, damping: 20 }}
-      className="fixed w-full z-50 bg-white/98 backdrop-blur-md shadow-sm py-3"
+    <nav 
+      ref={navRef}
+      className="fixed top-0 left-0 right-0 z-50 transition-all"
     >
-      <div className="container mx-auto px-6 flex justify-between items-center">
-        {/* Logo and Brand */}
-        <Link href="/" className="flex items-center space-x-2">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full blur opacity-70"></div>
-            <div className="relative bg-indigo-600 p-2 rounded-full">
-              <MoonIcon className="w-6 h-6 text-white" />
+      <div className="container mx-auto px-4 py-3">
+        <div className="flex items-center justify-between">
+          <Link href="/" className="text-xl font-bold text-purple-600 transition-colors duration-200">
+            Sleep Diary
+          </Link>
+
+          {/* Desktop Navigation */}
+          <div ref={linksRef} className="hidden md:flex space-x-8">
+            {navLinks.map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                className="text-gray-600 hover:text-purple-600 transition-colors duration-200"
+              >
+                {label}
+              </Link>
+            ))}
+          </div>
+
+          {/* Auth Section - Always shown on desktop, hidden on mobile when menu closed */}
+          <div className="hidden md:block">
+            <AuthSection />
+          </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            className="md:hidden text-gray-600 hover:text-purple-600 transition-colors duration-200"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              {isMenuOpen ? (
+                <path d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path d="M4 6h16M4 12h16M4 18h16" />
+              )}
+            </svg>
+          </button>
+        </div>
+
+        {/* Mobile Menu */}
+        <div
+          ref={menuRef}
+          className="md:hidden absolute top-full left-0 right-0 bg-white shadow-lg transform -translate-y-full"
+        >
+          <div className="py-2">
+            {navLinks.map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                className="block px-4 py-2 text-gray-600 hover:bg-purple-50 hover:text-purple-600 transition-colors duration-200"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                {label}
+              </Link>
+            ))}
+            {/* Show auth section in mobile menu */}
+            <div className="px-4 py-2 border-t border-gray-100 mt-2">
+              <AuthSection />
             </div>
           </div>
-          <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
-            SleepDiary
-          </span>
-          {/* Small decorative star */}
-          <motion.div 
-            className="w-3 h-3 text-yellow-400 mt-1" 
-            animate={{ rotate: [0, 20, 0], scale: [1, 1.2, 1] }}
-            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-          >
-            <StarIcon />
-          </motion.div>
-        </Link>
-
-        {/* Nav Links (Optional) */}
-        <div className="hidden md:flex items-center space-x-6">
-          <Link href="/about" className="text-gray-700 hover:text-purple-600 transition-colors">About</Link>
-          <Link href="/features" className="text-gray-700 hover:text-purple-600 transition-colors">Features</Link>
-          <Link href="/faq" className="text-gray-700 hover:text-purple-600 transition-colors">FAQ</Link>
-        </div>
-
-        {/* Auth Section - Only render on client side */}
-        <div className="flex items-center">
-          {mounted ? <AuthSection /> : 
-            // Placeholder with similar dimensions to avoid layout shift
-            <div className="h-9 w-24 rounded-full bg-gray-200 animate-pulse"></div>
-          }
         </div>
       </div>
-    </motion.nav>
+    </nav>
   );
 } 

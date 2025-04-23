@@ -1,15 +1,10 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-
-const MoonIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
-    <path fillRule="evenodd" d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-3.51 1.758-6.628 4.43-8.493a.75.75 0 01.819.162z" clipRule="evenodd" />
-  </svg>
-);
+import anime from 'animejs/lib/anime.es.js';
+import { MoonIcon } from '@/components/Icons';
 
 interface FormData {
   name: string;
@@ -19,6 +14,7 @@ interface FormData {
 
 export default function Register() {
   const router = useRouter();
+  const containerRef = useRef<HTMLDivElement>(null);
   
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -29,6 +25,19 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [emailSent, setEmailSent] = useState(false);
+
+  // Animate the container entrance
+  useEffect(() => {
+    if (containerRef.current) {
+      anime({
+        targets: containerRef.current,
+        opacity: [0, 1],
+        translateY: [20, 0],
+        duration: 500,
+        easing: 'easeOutQuad'
+      });
+    }
+  }, [emailSent]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -69,11 +78,9 @@ export default function Register() {
   if (emailSent) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-purple-100 px-4">
-        <motion.div 
-          className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+        <div 
+          ref={containerRef}
+          className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full opacity-0"
         >
           <div className="text-center">
             <div className="mx-auto w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
@@ -91,18 +98,16 @@ export default function Register() {
               Back to registration
             </button>
           </div>
-        </motion.div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-purple-100 px-4">
-      <motion.div 
-        className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+      <div 
+        ref={containerRef}
+        className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full opacity-0"
       >
         <div className="text-center mb-8">
           <div className="mx-auto w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
@@ -206,7 +211,7 @@ export default function Register() {
             Already have an account? <Link href="/auth/signin" className="text-indigo-600 hover:text-indigo-800">Sign in</Link>
           </p>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 } 

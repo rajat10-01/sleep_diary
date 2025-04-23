@@ -1,16 +1,11 @@
 'use client';
 
-import { useState, FormEvent, Suspense } from 'react';
+import { useState, FormEvent, Suspense, useEffect, useRef } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-
-const MoonIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
-    <path fillRule="evenodd" d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-3.51 1.758-6.628 4.43-8.493a.75.75 0 01.819.162z" clipRule="evenodd" />
-  </svg>
-);
+import anime from 'animejs/lib/anime.es.js';
+import { MoonIcon } from '@/components/Icons';
 
 interface FormData {
   email: string;
@@ -22,6 +17,7 @@ function SignInContent() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/api/auth/callback';
   const error = searchParams.get('error');
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const [formData, setFormData] = useState<FormData>({
     email: '',
@@ -30,6 +26,19 @@ function SignInContent() {
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [authError, setAuthError] = useState(error || '');
+
+  // Animation for container entrance
+  useEffect(() => {
+    if (containerRef.current) {
+      anime({
+        targets: containerRef.current,
+        opacity: [0, 1],
+        translateY: [20, 0],
+        duration: 500,
+        easing: 'easeOutQuad'
+      });
+    }
+  }, [emailSent]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -113,11 +122,9 @@ function SignInContent() {
   if (emailSent) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-purple-100 px-4">
-        <motion.div 
-          className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+        <div 
+          ref={containerRef}
+          className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full opacity-0"
         >
           <div className="text-center">
             <div className="mx-auto w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
@@ -135,18 +142,16 @@ function SignInContent() {
               Back to sign-in
             </button>
           </div>
-        </motion.div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-purple-100 px-4">
-      <motion.div 
-        className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+      <div 
+        ref={containerRef}
+        className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full opacity-0"
       >
         <div className="text-center mb-8">
           <div className="mx-auto w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
@@ -248,41 +253,36 @@ function SignInContent() {
           </p>
         </div>
 
-        {/* Demo account section */}
-        <div className="mt-8 pt-6 border-t border-gray-200">
-          <h3 className="text-sm font-medium text-gray-700 mb-4">Demo Accounts</h3>
-          <div className="grid grid-cols-2 gap-4">
+        <div className="mt-6 border-t border-gray-200 pt-4">
+          <h3 className="text-sm font-medium text-gray-700 mb-2">Demo Accounts:</h3>
+          <div className="grid grid-cols-2 gap-2">
             <button
-              onClick={loginAsDoctor}
-              className="bg-green-50 hover:bg-green-100 text-green-700 py-2 px-4 rounded-md text-sm transition-colors"
+              type="button"
+              onClick={loginAsPatient}
+              className="text-xs py-2 px-3 bg-purple-100 text-purple-700 rounded hover:bg-purple-200"
             >
-              Sign in as Doctor
+              Demo Patient
             </button>
             <button
-              onClick={loginAsPatient}
-              className="bg-blue-50 hover:bg-blue-100 text-blue-700 py-2 px-4 rounded-md text-sm transition-colors"
+              type="button"
+              onClick={loginAsDoctor}
+              className="text-xs py-2 px-3 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
             >
-              Sign in as Patient
+              Demo Doctor
             </button>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
 
-// Add a loading fallback for the Suspense boundary
 function SignInLoading() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-purple-100 px-4">
-      <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full flex justify-center items-center">
-        <div className="animate-pulse text-center">
-          <div className="mx-auto w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
-            <MoonIcon className="w-8 h-8 text-indigo-300" />
-          </div>
-          <div className="h-6 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-purple-100">
+      <div className="p-8 rounded-lg text-center">
+        <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600 mb-4"></div>
+        <p className="text-indigo-800">Loading sign-in page...</p>
       </div>
     </div>
   );
